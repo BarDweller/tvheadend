@@ -86,6 +86,9 @@ void tvh_input_stream_destroy ( tvh_input_stream_t *st );
 #if ENABLE_IPTV
 #include "input/mpegts/iptv.h"
 #endif
+#if ENABLE_HDPVR
+#include "input/mpegts/hdpvr.h"
+#endif
 #if ENABLE_LINUXDVB
 #include "input/mpegts/linuxdvb.h"
 #endif
