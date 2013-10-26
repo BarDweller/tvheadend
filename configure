@@ -20,7 +20,6 @@ OPTIONS=(
   "v4l:no"
   "linuxdvb:yes"
   "iptv:yes"
-  "hdpvr:yes"
   "tsfile:yes"
   "dvbscan:yes"
   "timeshift:yes"
@@ -255,7 +254,7 @@ fi
 #
 disable mpegts
 disable mpegps
-if enabled linuxdvb || enabled iptv || enabled hdpvr || enabled tsfile; then
+if enabled linuxdvb || enabled iptv || enabled tsfile; then
   enable mpegts
 fi
 

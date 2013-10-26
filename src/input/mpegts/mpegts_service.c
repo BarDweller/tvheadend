@@ -191,7 +191,7 @@ mpegts_service_enlist(service_t *t, struct service_instance_list *sil)
 /*
  * Start service
  */
-int
+static int
 mpegts_service_start(service_t *t, int instance)
 {
   int r;

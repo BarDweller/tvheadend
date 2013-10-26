@@ -195,12 +195,6 @@ SRCS-${CONFIG_LINUXDVB} += \
 
 # IPTV
 SRCS-${CONFIG_IPTV} += \
-	src/input/mpegts/hdpvr/hdpvr.c \
-        src/input/mpegts/hdpvr/hdpvr_mux.c \
-        src/input/mpegts/hdpvr/hdpvr_service.c \
-
-# IPTV
-SRCS-${CONFIG_IPTV} += \
 	src/input/mpegts/iptv/iptv.c \
         src/input/mpegts/iptv/iptv_mux.c \
         src/input/mpegts/iptv/iptv_service.c \
