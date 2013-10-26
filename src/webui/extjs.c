@@ -152,7 +152,12 @@ extjs_root(http_connection_t *hc, const char *remain, void *opaque)
   extjs_load(hq, "static/app/dvb_networks.js");
   extjs_load(hq, "static/app/mpegts.js");
 #endif
+#if ENABLE_IPTV
   extjs_load(hq, "static/app/iptv.js");
+#endif
+#if ENABLE_HDPVR
+  extjs_load(hq, "static/app/hdpvr.js");
+#endif
 #if ENABLE_V4L
   extjs_load(hq, "static/app/v4l.js");
 #endif

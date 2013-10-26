@@ -715,6 +715,9 @@ main(int argc, char **argv)
 #if ENABLE_IPTV
   iptv_init();
 #endif
+#if ENABLE_HDPVR
+  hdpvr_init();
+#endif
 #if ENABLE_LINUXDVB
   linuxdvb_init(adapter_mask);
 #endif
