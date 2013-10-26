@@ -38,13 +38,14 @@ static void *
 tsfile_input_thread ( void *aux )
 {
   int pos = 0, fd = -1, nfds;
-  size_t len, rem;
   ssize_t c;
   tvhpoll_t *efd;
   tvhpoll_event_t ev;
-  struct stat st;
-  uint8_t tsb[188*10];
-  int64_t pcr, pcr_last = PTS_UNSET, pcr_last_realtime = 0;
+  tvhpoll_t *fefd;
+  tvhpoll_event_t fev;
+  uint8_t tsb[188*30];
+  int64_t pcr;
+  //int64_t pcr_last = PTS_UNSET, pcr_last_realtime = 0;
   mpegts_input_t *mi = aux;
   mpegts_mux_instance_t *mmi;
   tsfile_mux_instance_t *tmi;
@@ -71,19 +72,14 @@ tsfile_input_thread ( void *aux )
   ev.fd = ev.data.fd = mi->mi_thread_pipe.rd;
   tvhpoll_add(efd, &ev, 1);
 
-  /* Get file length */
-  if (fstat(fd, &st)) {
-    tvhlog(LOG_ERR, "tsfile", "stat() failed %d (%s)",
-           errno, strerror(errno));
-    goto exit;
-  }
+  memset(&fev, 0, sizeof(fev));
+  fefd = tvhpoll_create(2);
+  fev.events          = TVHPOLL_IN;
+  fev.fd = fev.data.fd = fd;
+  tvhpoll_add(fefd, &fev, 1);
 
-  /* Check for extra (incomplete) packet at end */
-  rem = st.st_size % 188;
-  len = 0;
-  tvhtrace("tsfile", "adapter %d file size %"PRIoff_t " rem %"PRIsize_t,
-           mi->mi_instance, st.st_size, rem);
-  
+  usleep(5000);
+
   /* Process input */
   while (1) {
       
@@ -101,6 +97,16 @@ tsfile_input_thread ( void *aux )
     /* Check for terminate */
     nfds = tvhpoll_wait(efd, &ev, 1, 0);
     if (nfds == 1) break;
+
+    nfds = tvhpoll_wait(fefd, &fev, 1, 2500);
+    if(nfds==-1){
+       tvhlog(LOG_ERR, "tsfile", "polling failed.. exiting");
+       break;
+    }
+    if(nfds==0){
+       tvhlog(LOG_ERR, "tsfile", "polling timed out.. exiting");
+       break;
+    }
     
     /* Read */
     c = read(fd, tsb+pos, sizeof(tsb)-pos);
@@ -111,47 +117,21 @@ tsfile_input_thread ( void *aux )
              errno, strerror(errno));
       break;
     }
-    len += c;
 
-    /* Reset */
-    if (len == st.st_size) {
-      len = 0;
-      c -= rem;
-      tvhtrace("tsfile", "adapter %d reached eof, resetting", mi->mi_instance);
-      lseek(fd, 0, SEEK_SET);
-      pcr_last = PTS_UNSET;
-    }
+    c+=pos;
 
     /* Process */
     if (c >= 0) {
       pcr = PTS_UNSET;
-      pos = mpegts_input_recv_packets(mi, mmi, tsb, c+pos, &pcr,
+      pos = mpegts_input_recv_packets(mi, mmi, tsb, c, &pcr,
                                       &tmi->mmi_tsfile_pcr_pid, "tsfile");
 
-      /* Delay */
-      if (pcr != PTS_UNSET) {
-        if (pcr_last != PTS_UNSET) {
-          struct timespec slp;
-          int64_t d = pcr - pcr_last;
-          if (d < 0)
-            d = 0;
-          else if (d > 90000)
-            d = 90000;
-          d *= 11;
-          d += pcr_last_realtime;
-          slp.tv_sec  = (d / 1000000);
-          slp.tv_nsec = (d % 1000000) * 1000;
-          clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &slp, NULL);
-        }
-        pcr_last          = pcr;
-        pcr_last_realtime = getmonoclock();
-      }
     }
     sched_yield();
   }
 
-exit:
   tvhpoll_destroy(efd);
+  tvhpoll_destroy(fefd);
   close(fd);
   return NULL;
 }
